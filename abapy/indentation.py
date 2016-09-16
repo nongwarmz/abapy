@@ -536,6 +536,7 @@ class DeformableCone2D:
   def make_mesh(self):
     from numpy import tan, radians, pi, arcsin, sin, cos
     mesh = IndentationMesh(Na = self.Na, Nb = self.Nb, Ns = self.Ns, Nf = self.Nf, l = self.l, name = 'CAX4')
+    mesh.add_set("INDENTER_ELEMENTS", mesh.labels)
     mesh = mesh.apply_reflection(point = (0., 0., 0.), normal = (0., 1., 0.) )
     ymax, xmax = max(mesh.nodes.y), max(mesh.nodes.x)
     #mesh.nodes.add_set_by_func('bottom', lambda x, y, z, labels: y == ymax)
@@ -1316,11 +1317,11 @@ U
 *ENERGY OUTPUT
 ALLFD, ALLWK
 *ENERGY OUTPUT, ELSET=I_SAMPLE.ALL_ELEMENTS
-ALLPD
-*ENERGY OUTPUT, ELSET=I_SAMPLE.ALL_ELEMENTS
-ALLSE
-*ENERGY OUTPUT, ELSET=I_INDENTER.ALL_ELEMENTS
-ALLSE
+ALLPD, ALLSE
+*ENERGY OUTPUT, ELSET=I_INDENTER.INDENTER_ELEMENTS
+ALLPD, ALLSE
+*CONTACT OUTPUT
+CAREA
 *CONTACT OUTPUT, NSET=I_SAMPLE.TOP_NODES
 CPRESS
 *NODE OUTPUT, NSET=I_INDENTER.REF_NODE
@@ -2072,7 +2073,44 @@ class ContactData:
     Returns the minimum pressure.
     '''
     return min(self.pressure)
+  
+  def contact_radius(self, zero_pressure = 0.):
+    """
+    Returns the contact radius in 2D cases, nan otherwise.
+    """
+    import numpy as np
+    if self.is_3D: 
+      return np.nan
+    else:
+      r = np.array(self.coor1)
+      z = np.array(self.altitude)
+      p = np.array(self.pressure)
+      loc = np.where(p>zero_pressure)[0]
+      if len(loc) != 0:
+        rc = r[loc].max()
+        return rc
+      else:
+        return np.nan
+      
+  def contact_height(self, zero_pressure = 0.):
+    """
+    Returns the contact height in 2D cases, nan otherwise.
+    """
+    import numpy as np
+    if self.is_3D: 
+      return np.nan
+    else:
+      r = np.array(self.coor1)
+      z = np.array(self.altitude)
+      p = np.array(self.pressure)
+      loc = np.where(p>zero_pressure)[0]
+      if len(loc) != 0:
+        hc = z[loc].max()
+        return hc
+      else:
+        return np.nan       
 
+    
 
 def Get_ContactData(odb, instance, node_set):
   '''
